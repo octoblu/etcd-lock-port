@@ -8,17 +8,17 @@ import (
 
 // EtcdLockPort finds an unclaimed port and claims it
 type EtcdLockPort struct {
-	name, registry, key string
-	etcd                *EtcdClient
+	registry, key string
+	etcd          *EtcdClient
 }
 
 // New creates a new instance of EtcdLockPort
-func New(name, registry, key string) (*EtcdLockPort, error) {
+func New(registry, key string) (*EtcdLockPort, error) {
 	etcd, err := NewEtcdClient()
 	if err != nil {
 		return nil, err
 	}
-	return &EtcdLockPort{name, registry, key, etcd}, nil
+	return &EtcdLockPort{registry, key, etcd}, nil
 }
 
 // LockPort locks a port and returns it
@@ -49,7 +49,7 @@ func (etcdLockPort *EtcdLockPort) getExistingLock() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if whoGotTheLock != etcdLockPort.name {
+	if whoGotTheLock != etcdLockPort.key {
 		return "", nil
 	}
 	return port, nil
@@ -60,7 +60,7 @@ func (etcdLockPort *EtcdLockPort) lockNewPort() (string, error) {
 	registryKey := fmt.Sprintf("%v/%v", etcdLockPort.registry, port)
 
 	etcd := etcdLockPort.etcd
-	err := etcd.Set(registryKey, etcdLockPort.name)
+	err := etcd.Set(registryKey, etcdLockPort.key)
 	if err != nil {
 		return "", err
 	}
@@ -70,7 +70,7 @@ func (etcdLockPort *EtcdLockPort) lockNewPort() (string, error) {
 		return "", err
 	}
 
-	if whoGotTheLock != etcdLockPort.name {
+	if whoGotTheLock != etcdLockPort.key {
 		return etcdLockPort.lockNewPort()
 	}
 
