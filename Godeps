@@ -1,0 +1,4 @@
+github.com/codegangsta/cli
+github.com/coreos/etcd/client
+github.com/onsi/ginkgo/ginkgo
+github.com/onsi/gomega
