@@ -46,8 +46,8 @@ func run(context *cli.Context) {
 		os.Exit(1)
 	}
 
-	etcdPort := NewEtcdPort(name, registry, key)
-	port, err := etcdPort.LockPort()
+	etcdLockPort := New(name, registry, key)
+	port, err := etcdLockPort.LockPort()
 	if err != nil {
 		log.Panicf("Error establishing lock: %v", err.Error)
 	}
