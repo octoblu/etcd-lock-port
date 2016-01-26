@@ -13,8 +13,8 @@ type EtcdLockPort struct {
 }
 
 // New creates a new instance of EtcdLockPort
-func New(registry, key string) (*EtcdLockPort, error) {
-	etcd, err := NewEtcdClient()
+func New(registry, key, etcdURI string) (*EtcdLockPort, error) {
+	etcd, err := NewEtcdClient(etcdURI)
 	if err != nil {
 		return nil, err
 	}

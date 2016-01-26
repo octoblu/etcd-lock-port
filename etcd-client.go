@@ -11,9 +11,9 @@ type EtcdClient struct {
 }
 
 // NewEtcdClient constructs a new EtcdClient
-func NewEtcdClient() (*EtcdClient, error) {
+func NewEtcdClient(etcdURI string) (*EtcdClient, error) {
 	etcd, err := client.New(client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
+		Endpoints: []string{etcdURI},
 	})
 	if err != nil {
 		return nil, err

@@ -16,6 +16,12 @@ func main() {
 	app.Action = run
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:   "etcd-uri, e",
+			EnvVar: "ETCD_LOCK_PORT_ETCD_URI",
+			Value:  "http://127.0.0.1:2379",
+			Usage:  "uri where the etcd server is available",
+		},
+		cli.StringFlag{
 			Name:   "key, k",
 			EnvVar: "ETCD_LOCK_PORT_KEY",
 			Usage:  "etcd key to put the registered port for reverse lookup",
@@ -33,6 +39,7 @@ func main() {
 func run(context *cli.Context) {
 	key := context.String("key")
 	registry := context.String("registry")
+	etcdURI := context.String("etcd-uri")
 
 	if key == "" || registry == "" {
 		cli.ShowAppHelp(context)
@@ -40,7 +47,7 @@ func run(context *cli.Context) {
 		os.Exit(1)
 	}
 
-	etcdLockPort, err := New(registry, key)
+	etcdLockPort, err := New(registry, key, etcdURI)
 	if err != nil {
 		log.Panicf("Error connecting to etcd: %v", err.Error)
 	}
