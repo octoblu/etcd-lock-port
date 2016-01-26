@@ -21,7 +21,7 @@ func main() {
 			Usage:  "etcd key to put the registered port for reverse lookup",
 		},
 		cli.StringFlag{
-			Name:   "name, s",
+			Name:   "name, n",
 			EnvVar: "ETCD_LOCK_PORT_NAME",
 			Usage:  "Name of the service to register the port to",
 		},
@@ -47,6 +47,11 @@ func run(context *cli.Context) {
 	}
 
 	etcdLockPort := New(name, registry, key)
+	err := etcdLockPort.Connect()
+	if err != nil {
+		log.Panicf("Error connecting to etcd: %v", err.Error)
+	}
+
 	port, err := etcdLockPort.LockPort()
 	if err != nil {
 		log.Panicf("Error establishing lock: %v", err.Error)
