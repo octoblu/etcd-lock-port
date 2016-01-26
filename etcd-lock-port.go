@@ -4,49 +4,81 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/coreos/etcd/client"
 )
 
 // EtcdLockPort finds an unclaimed port and claims it
 type EtcdLockPort struct {
 	name, registry, key string
-	etcd                client.Client
+	etcd                *EtcdClient
 }
 
 // New creates a new instance of EtcdLockPort
-func New(name, registry, key string) *EtcdLockPort {
-	var etcd client.Client
-	return &EtcdLockPort{name, registry, key, etcd}
-}
-
-// Connect connects the EtcdLockPort instance to Etcd
-func (etcdLockPort *EtcdLockPort) Connect() error {
-	etcd, err := client.New(client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
-	})
-	etcdLockPort.etcd = etcd
-	return err
+func New(name, registry, key string) (*EtcdLockPort, error) {
+	etcd, err := NewEtcdClient()
+	if err != nil {
+		return nil, err
+	}
+	return &EtcdLockPort{name, registry, key, etcd}, nil
 }
 
 // LockPort locks a port and returns it
 func (etcdLockPort *EtcdLockPort) LockPort() (string, error) {
-	rand.Seed(time.Now().UnixNano())
-	port := fmt.Sprintf("%v", (20000 + rand.Intn(45000)))
-	registryKey := fmt.Sprintf("%v/%v", etcdLockPort.registry, port)
+	port, err := etcdLockPort.getExistingLock()
+	if err != nil {
+		return "", err
+	}
+	if port != "" {
+		return port, nil
+	}
+	return etcdLockPort.lockNewPort()
+}
 
-	api := client.NewKeysAPI(etcdLockPort.etcd)
-	api.Set(context.Background(), registryKey, etcdLockPort.name, nil)
-
-	whoGotTheLock, err := api.Get(context.Background(), registryKey, nil)
+func (etcdLockPort *EtcdLockPort) getExistingLock() (string, error) {
+	etcd := etcdLockPort.etcd
+	port, err := etcd.Get(etcdLockPort.key)
 	if err != nil {
 		return "", err
 	}
 
-	if whoGotTheLock.Node.Value == etcdLockPort.name {
-		return port, nil
+	if port == "" {
+		return "", nil
 	}
 
-	return etcdLockPort.LockPort()
+	registryKey := fmt.Sprintf("%v/%v", etcdLockPort.registry, port)
+	whoGotTheLock, err := etcd.Get(registryKey)
+	if err != nil {
+		return "", err
+	}
+	if whoGotTheLock != etcdLockPort.name {
+		return "", nil
+	}
+	return port, nil
+}
+
+func (etcdLockPort *EtcdLockPort) lockNewPort() (string, error) {
+	port := randomPort()
+	registryKey := fmt.Sprintf("%v/%v", etcdLockPort.registry, port)
+
+	etcd := etcdLockPort.etcd
+	err := etcd.Set(registryKey, etcdLockPort.name)
+	if err != nil {
+		return "", err
+	}
+
+	whoGotTheLock, err := etcd.Get(registryKey)
+	if err != nil {
+		return "", err
+	}
+
+	if whoGotTheLock != etcdLockPort.name {
+		return etcdLockPort.lockNewPort()
+	}
+
+	etcd.Set(etcdLockPort.key, port)
+	return port, nil
+}
+
+func randomPort() string {
+	rand.Seed(time.Now().UnixNano())
+	return fmt.Sprintf("%v", (20000 + rand.Intn(45000)))
 }

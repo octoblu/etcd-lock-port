@@ -46,8 +46,7 @@ func run(context *cli.Context) {
 		os.Exit(1)
 	}
 
-	etcdLockPort := New(name, registry, key)
-	err := etcdLockPort.Connect()
+	etcdLockPort, err := New(name, registry, key)
 	if err != nil {
 		log.Panicf("Error connecting to etcd: %v", err.Error)
 	}
